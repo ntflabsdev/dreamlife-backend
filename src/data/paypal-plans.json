@@ -1,0 +1,36 @@
+{
+  "productId": "PROD-5EV455617K512390D",
+  "visionaryPlan": {
+    "id": "P-9VN96637N38751438NDN4GXI",
+    "name": "Visionary (Core Plan)",
+    "description": "Full 3D interactive scene, customize house, parking, environment",
+    "price": "14.99",
+    "setupFee": "0",
+    "trialDays": 7,
+    "status": "ACTIVE",
+    "features": [
+      "Full 3D interactive scene",
+      "Customize house, parking, environment",
+      "Mirror Mode: see your dream body",
+      "Add 1 car + future partner",
+      "Great entry point for serious users"
+    ]
+  },
+  "legendPlan": {
+    "id": "P-31D06951VC473591BNDN4GXQ",
+    "name": "Legend (VIP Plan)",
+    "description": "All features unlocked, Advanced Mirror Mode, AI Dream Coach",
+    "price": "34.99",
+    "setupFee": "0",
+    "trialDays": 14,
+    "status": "ACTIVE",
+    "features": [
+      "All features unlocked",
+      "Advanced Mirror Mode: body + face + emotions",
+      "AI Dream Coach (daily sessions)",
+      "Dream life video generation",
+      "Access to private Visionaries Community"
+    ]
+  },
+  "lastUpdated": "2025-09-30T11:47:42.546Z"
+}
