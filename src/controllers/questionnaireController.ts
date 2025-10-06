@@ -1,38 +1,36 @@
 import { Request, Response } from 'express';
 import { Questionnaire } from '../models/Questionnaire';
-import { User } from '../models/User';
 import { AuthenticatedRequest } from '../middleware/auth';
-import { v4 as uuidv4 } from 'uuid';
 
 interface QuestionnaireRequest extends AuthenticatedRequest {
   body: {
-    sessionId?: string;
     answers?: { [key: string]: string };
     currentStep?: number;
     answer?: { key: string; value: string };
+    isCompleted?: boolean;
   };
   params: {
-    sessionId?: string;
+    userId?: string;
   };
 }
 
-// Create or update questionnaire
+// Create, update, or complete questionnaire
 export const saveQuestionnaire = async (req: QuestionnaireRequest, res: Response): Promise<void> => {
   try {
-    const { sessionId, answers, currentStep } = req.body;
-    
-    // If user is authenticated, use their ID, otherwise use session ID
-    let questionnaire;
-    
-    if (req.userId) {
-      // Authenticated user - find their questionnaire
-      questionnaire = await Questionnaire.findOne({ userId: req.userId });
-    } else {
-      // Anonymous user - use session ID
-      const finalSessionId = sessionId || uuidv4();
-      questionnaire = await Questionnaire.findOne({ sessionId: finalSessionId });
+    const { answers, currentStep, isCompleted } = req.body;
+
+    // Ensure user is authenticated
+    if (!req.userId) {
+      res.status(401).json({
+        success: false,
+        error: { message: 'User must be authenticated to save questionnaire' },
+      });
+      return;
     }
-    
+
+    // Always use userId to find/create questionnaire
+    let questionnaire = await Questionnaire.findOne({ userId: req.userId });
+
     if (questionnaire) {
       // Update existing questionnaire
       if (answers) {
@@ -41,32 +39,39 @@ export const saveQuestionnaire = async (req: QuestionnaireRequest, res: Response
       if (typeof currentStep === 'number') {
         questionnaire.currentStep = currentStep;
       }
+      if (typeof isCompleted === 'boolean') {
+        questionnaire.isCompleted = isCompleted;
+        if (isCompleted) {
+          questionnaire.completedAt = new Date();
+        }
+      }
       questionnaire.updatedAt = new Date();
     } else {
       // Create new questionnaire
       const questionnaireData: any = {
+        userId: req.userId,
         answers: answers || {},
         currentStep: currentStep || 0,
       };
-      
-      if (req.userId) {
-        questionnaireData.userId = req.userId;
-      } else {
-        questionnaireData.sessionId = sessionId || uuidv4();
+      if (typeof isCompleted === 'boolean') {
+        questionnaireData.isCompleted = isCompleted;
+        if (isCompleted) {
+          questionnaireData.completedAt = new Date();
+        }
       }
-      
       questionnaire = new Questionnaire(questionnaireData);
     }
-    
+
     await questionnaire.save();
-    
+
     res.status(200).json({
       success: true,
       data: {
-        sessionId: questionnaire.sessionId,
+        userId: questionnaire.userId,
         answers: questionnaire.answers,
         currentStep: questionnaire.currentStep,
         isCompleted: questionnaire.isCompleted,
+        completedAt: questionnaire.completedAt,
       },
     });
   } catch (error) {
@@ -78,13 +83,22 @@ export const saveQuestionnaire = async (req: QuestionnaireRequest, res: Response
       },
     });
   }
-};
-
-// Update a single answer
+}; // Update a single answer
 export const updateAnswer = async (req: QuestionnaireRequest, res: Response): Promise<void> => {
   try {
-    const { sessionId } = req.params;
+    const { userId } = req.params;
     const { answer } = req.body;
+    
+    // Use authenticated user's ID or the provided userId
+    const targetUserId = req.userId || userId;
+    
+    if (!targetUserId) {
+      res.status(401).json({
+        success: false,
+        error: { message: 'User must be authenticated or userId must be provided' },
+      });
+      return;
+    }
     
     if (!answer || !answer.key || !answer.value) {
       res.status(400).json({
@@ -94,11 +108,11 @@ export const updateAnswer = async (req: QuestionnaireRequest, res: Response): Pr
       return;
     }
     
-    let questionnaire = await Questionnaire.findOne({ sessionId });
+    let questionnaire = await Questionnaire.findOne({ userId: targetUserId });
     
     if (!questionnaire) {
       questionnaire = new Questionnaire({
-        sessionId,
+        userId: targetUserId,
         answers: {},
         currentStep: 0,
       });
@@ -114,7 +128,7 @@ export const updateAnswer = async (req: QuestionnaireRequest, res: Response): Pr
     res.status(200).json({
       success: true,
       data: {
-        sessionId: questionnaire.sessionId,
+        userId: questionnaire.userId,
         answers: questionnaire.answers,
         currentStep: questionnaire.currentStep,
       },
@@ -130,12 +144,12 @@ export const updateAnswer = async (req: QuestionnaireRequest, res: Response): Pr
   }
 };
 
-// Get questionnaire by session ID
+// Get questionnaire by user ID
 export const getQuestionnaire = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { sessionId } = req.params;
+    const { userId } = req.params;
     
-    const questionnaire = await Questionnaire.findOne({ sessionId });
+    const questionnaire = await Questionnaire.findOne({ userId });
     
     if (!questionnaire) {
       res.status(404).json({
@@ -148,7 +162,7 @@ export const getQuestionnaire = async (req: Request, res: Response): Promise<voi
     res.status(200).json({
       success: true,
       data: {
-        sessionId: questionnaire.sessionId,
+        userId: questionnaire.userId,
         answers: questionnaire.answers,
         currentStep: questionnaire.currentStep,
         isCompleted: questionnaire.isCompleted,
@@ -167,42 +181,4 @@ export const getQuestionnaire = async (req: Request, res: Response): Promise<voi
   }
 };
 
-// Complete questionnaire
-export const completeQuestionnaire = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { sessionId } = req.params;
-    
-    const questionnaire = await Questionnaire.findOne({ sessionId });
-    
-    if (!questionnaire) {
-      res.status(404).json({
-        success: false,
-        error: { message: 'Questionnaire not found' },
-      });
-      return;
-    }
-    
-    questionnaire.isCompleted = true;
-    questionnaire.completedAt = new Date();
-    questionnaire.updatedAt = new Date();
-    
-    await questionnaire.save();
-    
-    res.status(200).json({
-      success: true,
-      data: {
-        sessionId: questionnaire.sessionId,
-        isCompleted: questionnaire.isCompleted,
-        completedAt: questionnaire.completedAt,
-      },
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: {
-        message: 'Failed to complete questionnaire',
-        details: (error as Error).message,
-      },
-    });
-  }
-};
+// ...existing code...

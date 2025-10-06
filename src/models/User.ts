@@ -2,14 +2,16 @@ import mongoose, { Document, Schema } from 'mongoose';
 import bcrypt from 'bcrypt';
 
 export interface IUser extends Document {
-  email: string;
-  password?: string;
+  _id: string;
   firstName?: string;
   lastName?: string;
+  email: string;
+  password: string;
   avatar?: string;
   isAnonymous: boolean;
-  sessionId?: string;
   isEmailVerified: boolean;
+  emailVerificationToken?: string;
+  emailVerificationExpires?: Date;
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
   subscriptions: Array<{
@@ -35,23 +37,6 @@ export interface IUser extends Document {
 }
 
 const userSchema = new Schema<IUser>({
-  email: {
-    type: String,
-    required: function(this: IUser): boolean {
-      return !this.isAnonymous;
-    },
-    unique: true,
-    sparse: true, // Allow multiple documents with null email
-    trim: true,
-    lowercase: true,
-  },
-  password: {
-    type: String,
-    required: function(this: IUser): boolean {
-      return !this.isAnonymous;
-    },
-    minlength: 6,
-  },
   firstName: {
     type: String,
     trim: true,
@@ -60,21 +45,34 @@ const userSchema = new Schema<IUser>({
     type: String,
     trim: true,
   },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true,
+  },
+  password: {
+    type: String,
+    required: true,
+    minlength: 6,
+  },
   avatar: {
     type: String,
   },
   isAnonymous: {
     type: Boolean,
-    default: true,
-  },
-  sessionId: {
-    type: String,
-    unique: true,
-    sparse: true,
+    default: false,
   },
   isEmailVerified: {
     type: Boolean,
     default: false,
+  },
+  emailVerificationToken: {
+    type: String,
+  },
+  emailVerificationExpires: {
+    type: Date,
   },
   resetPasswordToken: {
     type: String,
@@ -115,12 +113,13 @@ const userSchema = new Schema<IUser>({
 });
 
 // Hash password before saving
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password') || !this.password) return next();
+userSchema.pre('save', async function (next) {
+  const user = this as IUser;
+  if (!user.isModified('password')) return next();
   
   try {
-    const salt = await bcrypt.genSalt(12);
-    this.password = await bcrypt.hash(this.password, salt);
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(user.password, salt);
     next();
   } catch (error) {
     next(error as Error);
@@ -129,15 +128,14 @@ userSchema.pre('save', async function(next) {
 
 // Compare password method
 userSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
-  if (!this.password) return false;
-  return bcrypt.compare(candidatePassword, this.password);
+  const user = this as IUser;
+  if (!user.password) return false;
+  return bcrypt.compare(candidatePassword, user.password);
 };
 
 // Index for better performance
 userSchema.index({ email: 1 });
-userSchema.index({ sessionId: 1 });
-userSchema.index({ isAnonymous: 1 });
-userSchema.index({ lastActiveAt: -1 });
+userSchema.index({ emailVerificationToken: 1 });
 userSchema.index({ resetPasswordToken: 1 });
 
 export const User = mongoose.model<IUser>('User', userSchema);

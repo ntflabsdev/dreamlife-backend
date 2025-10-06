@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
 import { DreamWorld } from '../models/DreamWorld';
 import { Questionnaire } from '../models/Questionnaire';
-import { v4 as uuidv4 } from 'uuid';
+import { AuthenticatedRequest } from '../middleware/auth';
 
-interface DreamWorldRequest extends Request {
+interface DreamWorldRequest extends AuthenticatedRequest {
   body: {
-    sessionId: string;
+    userId?: string;
     questionnaireId?: string;
   };
 }
@@ -13,19 +13,22 @@ interface DreamWorldRequest extends Request {
 // Generate dream world from questionnaire
 export const generateDreamWorld = async (req: DreamWorldRequest, res: Response): Promise<void> => {
   try {
-    const { sessionId, questionnaireId } = req.body;
+    const { userId, questionnaireId } = req.body;
     
-    if (!sessionId) {
-      res.status(400).json({
+    // Use authenticated user's ID or the provided userId
+    const targetUserId = req.userId || userId;
+    
+    if (!targetUserId) {
+      res.status(401).json({
         success: false,
-        error: { message: 'Session ID is required' },
+        error: { message: 'User must be authenticated or userId must be provided' },
       });
       return;
     }
     
     // Find the questionnaire
     const questionnaire = await Questionnaire.findOne({ 
-      sessionId,
+      userId: targetUserId,
       ...(questionnaireId && { _id: questionnaireId })
     });
     
@@ -46,7 +49,7 @@ export const generateDreamWorld = async (req: DreamWorldRequest, res: Response):
     }
     
     // Check if dream world already exists
-    let dreamWorld = await DreamWorld.findOne({ sessionId });
+    let dreamWorld = await DreamWorld.findOne({ userId: targetUserId });
     
     if (dreamWorld && dreamWorld.generationStatus === 'completed') {
       res.status(200).json({
@@ -60,7 +63,7 @@ export const generateDreamWorld = async (req: DreamWorldRequest, res: Response):
     // Create or update dream world
     if (!dreamWorld) {
       dreamWorld = new DreamWorld({
-        sessionId,
+        userId: targetUserId,
         questionnaireId: questionnaire._id,
         worldData: {
           title: '',
@@ -89,7 +92,7 @@ export const generateDreamWorld = async (req: DreamWorldRequest, res: Response):
       success: true,
       data: {
         id: dreamWorld._id,
-        sessionId: dreamWorld.sessionId,
+        userId: dreamWorld.userId,
         status: dreamWorld.generationStatus,
         message: 'Dream world generation started',
       },
@@ -108,9 +111,9 @@ export const generateDreamWorld = async (req: DreamWorldRequest, res: Response):
 // Get dream world status/data
 export const getDreamWorld = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { sessionId } = req.params;
+    const { userId } = req.params;
     
-    const dreamWorld = await DreamWorld.findOne({ sessionId });
+    const dreamWorld = await DreamWorld.findOne({ userId });
     
     if (!dreamWorld) {
       res.status(404).json({
@@ -153,7 +156,7 @@ async function processQuestionnaireIntoWorld(questionnaire: any, dreamWorld: any
     
     await dreamWorld.save();
     
-    console.log(`✅ Dream world generated for session: ${dreamWorld.sessionId}`);
+    console.log(`✅ Dream world generated for user: ${dreamWorld.userId}`);
     
   } catch (error) {
     console.error('❌ Dream world generation failed:', error);

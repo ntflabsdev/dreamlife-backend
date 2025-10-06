@@ -60,8 +60,7 @@ interface IQuestionnaireAnswers {
 }
 
 export interface IQuestionnaire extends Document {
-  userId?: string;
-  sessionId: string;
+  userId: string;
   answers: IQuestionnaireAnswers;
   currentStep: number;
   isCompleted: boolean;
@@ -72,10 +71,6 @@ export interface IQuestionnaire extends Document {
 
 const questionnaireSchema = new Schema<IQuestionnaire>({
   userId: {
-    type: String,
-    required: false, // Allow anonymous users
-  },
-  sessionId: {
     type: String,
     required: true,
     unique: true,
@@ -100,7 +95,6 @@ const questionnaireSchema = new Schema<IQuestionnaire>({
 });
 
 // Index for better performance
-questionnaireSchema.index({ sessionId: 1 });
 questionnaireSchema.index({ userId: 1 });
 questionnaireSchema.index({ createdAt: -1 });
 

@@ -6,12 +6,12 @@ export const validateQuestionnaire = (
   res: Response,
   next: NextFunction
 ): void => {
-  const { sessionId, answers, currentStep } = req.body;
+  const { answers, currentStep } = req.body;
   
-  if (!sessionId && !answers) {
+  if (!answers && currentStep === undefined) {
     res.status(400).json({
       success: false,
-      error: { message: 'Session ID or answers are required' },
+      error: { message: 'Answers or currentStep are required' },
     });
     return;
   }
@@ -34,12 +34,12 @@ export const validateAnswer = (
   next: NextFunction
 ): void => {
   const { answer } = req.body;
-  const { sessionId } = req.params;
+  const { userId } = req.params;
   
-  if (!sessionId) {
+  if (!userId) {
     res.status(400).json({
       success: false,
-      error: { message: 'Session ID is required' },
+      error: { message: 'User ID is required' },
     });
     return;
   }
@@ -138,15 +138,7 @@ export const validateDreamWorldGeneration = (
   res: Response,
   next: NextFunction
 ): void => {
-  const { sessionId } = req.body;
-  
-  if (!sessionId || typeof sessionId !== 'string') {
-    res.status(400).json({
-      success: false,
-      error: { message: 'Session ID is required and must be a string' },
-    });
-    return;
-  }
-  
+  // Since we're using authenticated users, no additional validation needed
+  // The authentication middleware will ensure we have a valid user
   next();
 };

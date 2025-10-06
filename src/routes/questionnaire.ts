@@ -3,23 +3,20 @@ import {
   saveQuestionnaire,
   updateAnswer,
   getQuestionnaire,
-  completeQuestionnaire,
 } from '../controllers/questionnaireController';
 import { validateQuestionnaire, validateAnswer } from '../middleware/validation';
-import { optionalAuth } from '../middleware/auth';
+import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
 
-// Save or update entire questionnaire
-router.post('/', optionalAuth, validateQuestionnaire, saveQuestionnaire);
+// Save or update entire questionnaire (requires authentication)
+router.post('/', authenticateToken, validateQuestionnaire, saveQuestionnaire);
 
 // Update a single answer
-router.patch('/:sessionId/answer', optionalAuth, validateAnswer, updateAnswer);
+router.patch('/:userId/answer', authenticateToken, validateAnswer, updateAnswer);
 
-// Get questionnaire by session ID
-router.get('/:sessionId', optionalAuth, getQuestionnaire);
+// Get questionnaire by user ID
+router.get('/:userId', authenticateToken, getQuestionnaire);
 
-// Mark questionnaire as completed
-router.post('/:sessionId/complete', optionalAuth, completeQuestionnaire);
 
 export default router;

@@ -1,8 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IDreamWorld extends Document {
-  userId?: string;
-  sessionId: string;
+  userId: string;
   questionnaireId: string;
   worldData: {
     title: string;
@@ -42,11 +41,8 @@ export interface IDreamWorld extends Document {
 const dreamWorldSchema = new Schema<IDreamWorld>({
   userId: {
     type: String,
-    required: false,
-  },
-  sessionId: {
-    type: String,
     required: true,
+    unique: true,
   },
   questionnaireId: {
     type: String,
@@ -93,7 +89,7 @@ const dreamWorldSchema = new Schema<IDreamWorld>({
 });
 
 // Index for better performance
-dreamWorldSchema.index({ sessionId: 1 });
+dreamWorldSchema.index({ userId: 1 });
 dreamWorldSchema.index({ questionnaireId: 1 });
 dreamWorldSchema.index({ generationStatus: 1 });
 dreamWorldSchema.index({ createdAt: -1 });
