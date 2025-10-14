@@ -109,11 +109,11 @@ export const createSubscription = async (req: AuthenticatedRequest, res: Respons
 			plan_id: paypalPlanId,
 			start_time: new Date(Date.now() + 60000).toISOString(),
 			subscriber: subscriberInfo || {
-				name: { given_name: user.firstName || 'DreamLife', surname: user.lastName || 'User' },
+				name: { given_name: user.firstName || 'LAvision', surname: user.lastName || 'User' },
 				email_address: user.email
 			},
 			application_context: {
-				brand_name: 'DreamLife', locale: 'en-US', shipping_preference: 'NO_SHIPPING', user_action: 'SUBSCRIBE_NOW',
+				brand_name: 'LAvision', locale: 'en-US', shipping_preference: 'NO_SHIPPING', user_action: 'SUBSCRIBE_NOW',
 				payment_method: { payer_selected: 'PAYPAL', payee_preferred: 'IMMEDIATE_PAYMENT_REQUIRED' },
 				return_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/subscription/success`,
 				cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/subscription/cancel`

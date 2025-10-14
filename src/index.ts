@@ -1,4 +1,5 @@
 import express from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -8,18 +9,20 @@ import dotenv from 'dotenv';
 import { connectDB } from './config/database';
 import { errorHandler, notFound } from './middleware/errorMiddleware';
 import { seedSubscriptionPlans } from './seeds/subscriptionSeed';
+import { seedKnowledgeBase } from './seeds/knowledgeBaseSeed';
 import questionnaireRoutes from './routes/questionnaire';
 import contactRoutes from './routes/contact';
 import dreamWorldRoutes from './routes/dreamWorld';
 import authRoutes from './routes/auth';
 import paymentsRoutes from './routes/payments';
 import subscriptionRoutes from './routes/subscription';
-import { ipAllowList } from './middleware/ipAllowList';
+import { WebSocketChatService } from './services/websocketChatService';
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ path: `.env.${process.env.NODE_ENV || 'development'}` });
 
 const app = express();
+const server = createServer(app);
 const PORT = process?.env?.PORT || 3000;
 
 app.set('trust proxy', 1);
@@ -40,6 +43,17 @@ const initializePayPalPlans = async () => {
 };
 initializePayPalPlans();
 
+const initializeKnowledgeBase = async () => {
+  try {
+    console.log('🌱 Initializing Knowledge Base...');
+    await seedKnowledgeBase();
+    console.log('✅ Knowledge Base initialized successfully');
+  } catch (error) {
+    console.error('❌ Failed to initialize Knowledge Base:', error);
+  }
+};
+initializeKnowledgeBase();
+
 // Security middleware
 app.use(helmet());
 
@@ -52,12 +66,17 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Optional IP allow list
-app.use(ipAllowList);
 
 // CORS configuration
-const allowedOrigins = process?.env?.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173'];
+const allowedOrigins = [ 'http://localhost:5173'];
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 }));
 
@@ -96,7 +115,7 @@ app.get('/', (req, res) => {
       questionnaire: '/api/questionnaire',
       dreamWorld: '/api/dream-world',
       contact: '/api/contact',
-      users: '/api/users'
+      websocket: 'ws://localhost:' + (process?.env?.PORT || 3000)
     },
     uptimeSeconds: process.uptime()
   });
@@ -114,11 +133,24 @@ app.use('/api/dream-world', dreamWorldRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
+// Initialize WebSocket Chat Service
+const webSocketChatService = new WebSocketChatService(server);
+
+// WebSocket stats endpoint (optional - for monitoring)
+app.get('/api/chat/stats', (req, res) => {
+  res.json({
+    connectedClients: webSocketChatService.getConnectedClientsCount(),
+    activeSessions: webSocketChatService.getActiveSessionsCount(),
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Start server
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`🚀 DreamLife API server running on port ${PORT}`);
   console.log(`📋 Environment: ${process?.env?.NODE_ENV || 'development'}`);
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
+  console.log(`💬 WebSocket Chat available at ws://localhost:${PORT}`);
 });
 
 export default app;

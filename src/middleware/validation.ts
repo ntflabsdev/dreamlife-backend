@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { validationResult } from 'express-validator';
 
 // Validation middleware for questionnaire
 export const validateQuestionnaire = (
@@ -140,5 +141,27 @@ export const validateDreamWorldGeneration = (
 ): void => {
   // Since we're using authenticated users, no additional validation needed
   // The authentication middleware will ensure we have a valid user
+  next();
+};
+
+// Generic validation middleware for express-validator
+export const validateRequest = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  const errors = validationResult(req);
+  
+  if (!errors.isEmpty()) {
+    res.status(400).json({
+      success: false,
+      error: {
+        message: 'Validation failed',
+        details: errors.array()
+      }
+    });
+    return;
+  }
+  
   next();
 };

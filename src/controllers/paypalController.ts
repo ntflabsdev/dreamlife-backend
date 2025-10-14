@@ -32,7 +32,7 @@ export const createPayPalOrder = async (req: AuthenticatedRequest, res: Response
 
     const purchaseUnit: PurchaseUnitRequest = {
       amount: amountObj,
-      description: `${planName} - DreamLife Subscription`
+      description: `${planName} - LAvision Subscription`
     };
 
     const orderRequest: OrderRequest = {
@@ -41,7 +41,7 @@ export const createPayPalOrder = async (req: AuthenticatedRequest, res: Response
       applicationContext: {
         returnUrl: `${process.env.FRONTEND_URL}/payment/success`,
         cancelUrl: `${process.env.FRONTEND_URL}/payment/cancel`,
-        brandName: 'DreamLife',
+        brandName: 'LAvision',
         userAction: OrderApplicationContextUserAction.PayNow
       }
     };

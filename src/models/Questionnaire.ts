@@ -11,6 +11,7 @@ interface IQuestionnaireAnswers {
   dream_location?: string;
   home_look?: string;
   home_details?: string;
+  home_feelings?: string;
   
   // Body & Health
   body_look?: string;
@@ -91,10 +92,9 @@ const questionnaireSchema = new Schema<IQuestionnaire>({
     type: Date,
   },
 }, {
-  timestamps: true, // Adds createdAt and updatedAt
+  timestamps: true, 
 });
 
-// Index for better performance
 questionnaireSchema.index({ userId: 1 });
 questionnaireSchema.index({ createdAt: -1 });
 

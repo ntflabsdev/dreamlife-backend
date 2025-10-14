@@ -2,11 +2,11 @@ import mongoose from 'mongoose';
 
 export const connectDB = async (): Promise<void> => {
   try {
-    const mongoURI = process?.env?.MONGODB_URI || 'mongodb://localhost:27017/dreamlife';
+    const mongoURI = process?.env?.MONGODB_URI || '';
     
     await mongoose.connect(mongoURI);
-    
-    console.log('✅ MongoDB connected successfully');
+
+    console.log('✅ MongoDB connected successfully',mongoURI);
     
     // Handle connection events
     mongoose.connection.on('error', (error: Error) => {

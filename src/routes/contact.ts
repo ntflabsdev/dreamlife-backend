@@ -11,10 +11,8 @@ const router = express.Router();
 // Submit contact form
 router.post('/', validateContact, submitContact);
 
-// Get all contacts (admin only - would need auth middleware)
 router.get('/', getContacts);
 
-// Update contact status (admin only - would need auth middleware)
 router.patch('/:id/status', updateContactStatus);
 
 export default router;
