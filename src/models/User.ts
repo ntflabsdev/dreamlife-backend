@@ -6,7 +6,9 @@ export interface IUser extends Document {
   firstName?: string;
   lastName?: string;
   email: string;
-  password: string;
+  password?: string;
+  provider?: 'google' | 'apple';
+  providerId?: string;
   avatar?: string;
   isAnonymous: boolean;
   isEmailVerified: boolean;
@@ -54,9 +56,11 @@ const userSchema = new Schema<IUser>({
   },
   password: {
     type: String,
-    required: true,
+    required: function(this: IUser) { return !this.provider; },
     minlength: 6,
   },
+  provider: { type: String, enum: ['google', 'apple'], required: false },
+  providerId: { type: String },
   avatar: {
     type: String,
   },
@@ -116,7 +120,7 @@ const userSchema = new Schema<IUser>({
 userSchema.pre('save', async function (next) {
   const user = this as IUser;
   if (!user.isModified('password')) return next();
-  
+  if (!user.password) return next();
   try {
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(user.password, salt);

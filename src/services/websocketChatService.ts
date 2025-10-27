@@ -7,6 +7,10 @@ interface ChatMessage {
   message: string;
   timestamp: Date;
   type: 'user' | 'bot';
+  // Optional metadata for bot answers
+  mode?: 'reused' | 'adapted' | 'generated' | 'blocked';
+  source?: 'database' | 'openai';
+  similarity?: number;
 }
 
 interface ChatSession {
@@ -58,7 +62,6 @@ export class WebSocketChatService {
 
           socket.emit('bot_typing', true);
 
-          // Use knowledge-base backed handler (scope restricted)
           const result = await this.chatService.handleQuestion(data.message);
 
           socket.emit('bot_typing', false);
@@ -67,7 +70,10 @@ export class WebSocketChatService {
             id: this.generateMessageId(),
             message: result.answer,
             timestamp: new Date(),
-            type: 'bot'
+            type: 'bot',
+            mode: result.mode,
+            source: result.source,
+            similarity: result.similarity
           };
 
           this.addMessageToSession(socket.id, botMessage);
