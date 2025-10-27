@@ -68,7 +68,7 @@ app.use(limiter);
 // Optional IP allow list
 
 // CORS configuration
-const allowedOrigins = [ 'http://localhost:5173'];
+const allowedOrigins = [ 'http://localhost:5173','https://lavisionlife.com/'];
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
